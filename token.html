@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050505">
+    <link rel="manifest" href="manifest.json">
+    <title>SECURE VAULT // ACCESS TOKEN</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg-color: #050505;
+            --primary-color: #00ffea;
+            --accent-color: #00ff00;
+            --alert-color: #ff003c;
+            --font-main: 'Share Tech Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            padding: 20px;
+        }
+
+        /* Background Grid */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 234, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 234, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            z-index: 10;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px var(--primary-color);
+            text-transform: uppercase;
+        }
+
+        /* RECEIPT BOX (Top) */
+        .receipt-box {
+            border: 1px dashed var(--secondary-color);
+            background: rgba(0, 59, 54, 0.2);
+            padding: 30px 20px;
+            margin-bottom: 40px;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        
+        .receipt-label {
+            position: absolute;
+            top: -10px; left: 50%; transform: translateX(-50%);
+            background: var(--bg-color);
+            padding: 0 10px;
+            font-size: 0.8rem;
+            color: #888;
+            border: 1px solid #222;
+        }
+
+        .token-display {
+            font-size: 2.2rem;
+            color: var(--accent-color);
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin: 10px 0;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            text-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+            transition: 0.2s;
+        }
+        .token-display:active { transform: scale(0.98); }
+
+        .copy-hint { font-size: 0.7rem; color: #666; text-transform: uppercase; margin-top: 10px; }
+
+        /* INPUT AREA (Bottom) */
+        .input-wrapper { text-align: left; width: 100%; }
+        .input-label { font-size: 0.8rem; color: var(--primary-color); margin-bottom: 8px; display: block; }
+        
+        .token-input {
+            width: 100%;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            font-family: var(--font-main);
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 15px;
+            outline: none;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            transition: border 0.3s;
+        }
+        
+        .token-input:focus { border-color: var(--primary-color); box-shadow: 0 0 15px rgba(0, 255, 234, 0.1); }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            background: var(--primary-color);
+            color: #000;
+            font-family: var(--font-main);
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: none;
+            transition: 0.3s;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover { background: #fff; box-shadow: 0 0 20px var(--primary-color); }
+        .btn:disabled { background: #333; color: #555; cursor: not-allowed; box-shadow: none; }
+
+        #statusLog {
+            margin-top: 20px;
+            height: 20px;
+            font-size: 0.8rem;
+            color: var(--alert-color);
+            min-height: 1.2rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>>> AUTHENTICATION_REQ</h1>
+
+        <div class="receipt-box">
+            <div class="receipt-label">INCOMING_PACKET // SECURE_CHANNEL</div>
+            <div class="token-display" id="generatedToken" title="Tap to Copy">...</div>
+            <div class="copy-hint" id="copyHint">>> TAP CODE TO COPY TO CLIPBOARD</div>
+        </div>
+
+        <div class="input-wrapper">
+            <label class="input-label" for="tokenInput">INPUT ACCESS_KEY:</label>
+            <input type="text" id="tokenInput" class="token-input" placeholder="TRX-XXXX-XXXX" autocomplete="off">
+            
+            <button class="btn" id="submitBtn" onclick="validateToken()">INITIALIZE TUNNEL</button>
+        </div>
+
+        <div id="statusLog"></div>
+    </div>
+
+    <script>
+        // 1. SECURITY CHECK
+        if (!sessionStorage.getItem('vault_auth')) {
+            window.location.href = 'index.html';
+        }
+
+        // 2. RETRIEVE TOKEN FROM PAYMENT STEP
+        const validToken = sessionStorage.getItem('vault_access_token');
+        
+        // Failsafe logic for testing (remove in prod if desired)
+        const displayToken = validToken || "ERR-NO-PAYMENT";
+
+        // 3. ANIMATE TOKEN REVEAL
+        const tokenDisplay = document.getElementById('generatedToken');
+        
+        if(validToken) {
+            let iterations = 0;
+            const interval = setInterval(() => {
+                tokenDisplay.innerText = displayToken
+                    .split("")
+                    .map((letter, index) => {
+                        if(index < iterations) return displayToken[index];
+                        return String.fromCharCode(65 + Math.floor(Math.random() * 26));
+                    })
+                    .join("");
+                
+                if(iterations >= displayToken.length) clearInterval(interval);
+                iterations += 1/2; // Speed of decryption
+            }, 50);
+        } else {
+            tokenDisplay.innerText = "ERROR: 402";
+            tokenDisplay.style.color = "var(--alert-color)";
+        }
+
+        // 4. COPY TO CLIPBOARD
+        tokenDisplay.addEventListener('click', () => {
+            if(validToken) {
+                navigator.clipboard.writeText(validToken).then(() => {
+                    const hint = document.getElementById('copyHint');
+                    hint.innerText = ">> COPIED SUCCESSFULLY";
+                    hint.style.color = "#fff";
+                    setTimeout(() => {
+                        hint.innerText = ">> TAP CODE TO COPY TO CLIPBOARD";
+                        hint.style.color = "#666";
+                    }, 2000);
+                });
+            }
+        });
+
+        // 5. VALIDATION LOGIC
+        function validateToken() {
+            const input = document.getElementById('tokenInput');
+            const log = document.getElementById('statusLog');
+            const btn = document.getElementById('submitBtn');
+
+            const userVal = input.value.trim().toUpperCase();
+
+            if(!userVal) return;
+
+            btn.disabled = true;
+            btn.innerText = "VERIFYING HASH...";
+
+            setTimeout(() => {
+                if (userVal === validToken) {
+                    // SUCCESS
+                    log.innerText = ">> KEY ACCEPTED. ESTABLISHING LINK...";
+                    log.style.color = "var(--accent-color)";
+                    
+                    // Final Auth Flag - This is what Dashboard looks for
+                    sessionStorage.setItem('vault_session_active', 'true');
+
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+
+                } else {
+                    // FAIL
+                    log.innerText = ">> ERROR: INVALID ACCESS KEY.";
+                    log.style.color = "var(--alert-color)";
+                    btn.disabled = false;
+                    btn.innerText = "INITIALIZE TUNNEL";
+                    input.value = '';
+                    input.focus();
+                    
+                    // Shake Input
+                    input.style.transform = "translateX(10px)";
+                    setTimeout(() => input.style.transform = "translateX(0)", 100);
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

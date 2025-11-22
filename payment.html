@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050505">
+    <link rel="manifest" href="manifest.json">
+    <title>SECURE VAULT // PAYMENT GATEWAY</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg-color: #050505;
+            --panel-bg: #0a0a0a;
+            --primary-color: #00ffea;
+            --secondary-color: #003b36;
+            --accent-color: #00ff00;
+            --alert-color: #ff003c;
+            --muted: #666;
+            --font-main: 'Share Tech Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Background Grid */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 234, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 234, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        header {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--secondary-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .brand { font-size: 1.2rem; letter-spacing: 2px; color: #fff; }
+        .secure-badge { font-size: 0.8rem; color: var(--accent-color); border: 1px solid var(--accent-color); padding: 2px 6px; }
+
+        /* MAIN LAYOUT */
+        main {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 20px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        /* PANEL STYLES */
+        .panel {
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid var(--secondary-color);
+            padding: 25px;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        h2 { font-size: 1rem; color: #888; margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 10px; }
+
+        /* ORDER SUMMARY (Right Side) */
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; }
+        .total-row { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px dashed #333; font-size: 1.4rem; color: #fff; }
+
+        /* PAYMENT METHODS (Left Side) */
+        .methods-grid { display: flex; gap: 10px; margin-bottom: 25px; }
+        
+        .method-btn {
+            flex: 1;
+            padding: 15px;
+            background: transparent;
+            border: 1px solid #333;
+            color: #666;
+            cursor: pointer;
+            font-family: var(--font-main);
+            text-transform: uppercase;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .method-btn.active, .method-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: rgba(0, 255, 234, 0.05);
+            box-shadow: 0 0 15px rgba(0, 255, 234, 0.1);
+        }
+
+        /* DYNAMIC CONTENT AREAS */
+        .payment-content { display: none; animation: fadeIn 0.3s; }
+        .payment-content.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* CRYPTO UI */
+        .qr-placeholder {
+            width: 140px; height: 140px;
+            background: #fff;
+            margin: 0 auto 20px auto;
+            display: flex; justify-content: center; align-items: center;
+            color: #000; font-weight: bold; border: 5px solid #fff;
+        }
+        
+        .wallet-address {
+            background: #000; border: 1px solid #333; padding: 12px;
+            font-size: 0.85rem; text-align: center; word-break: break-all;
+            color: #aaa; margin-bottom: 20px; user-select: all; cursor: pointer;
+            transition: 0.2s;
+        }
+        .wallet-address:hover { border-color: var(--primary-color); color: #fff; }
+
+        /* GIFT CARD UI */
+        .input-group { margin-bottom: 15px; }
+        .input-label { font-size: 0.8rem; color: #888; margin-bottom: 5px; display: block; }
+        
+        input[type="text"] {
+            width: 100%; background: #000; border: 1px solid var(--secondary-color);
+            color: #fff; padding: 15px; font-family: var(--font-main); font-size: 1.1rem;
+            outline: none; letter-spacing: 1px;
+        }
+        input:focus { border-color: var(--primary-color); }
+        
+        input:read-only {
+            background: #111;
+            border-color: #333;
+            color: #666;
+            cursor: not-allowed;
+            font-style: italic;
+        }
+
+        /* ACTION BUTTON */
+        .pay-btn {
+            width: 100%; background: var(--secondary-color); color: #fff;
+            border: none; padding: 18px; font-family: var(--font-main);
+            font-size: 1.2rem; cursor: pointer; text-transform: uppercase;
+            transition: 0.3s; margin-top: 10px; letter-spacing: 1px;
+        }
+        .pay-btn:hover { background: var(--primary-color); color: #000; box-shadow: 0 0 20px var(--primary-color); }
+
+        /* OVERLAY (Processing) */
+        #processingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 100;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
+        
+        .loader {
+            width: 60px; height: 60px; border: 4px solid #333;
+            border-top: 4px solid var(--primary-color); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* MOBILE */
+        @media (max-width: 768px) {
+            main { grid-template-columns: 1fr; }
+            .panel:nth-child(2) { order: -1; } /* Summary first on mobile */
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">>> CIPHER_PAY // SECURE GATEWAY</div>
+        <div class="secure-badge">TLS 1.3 ENCRYPTED</div>
+    </header>
+
+    <main>
+        <section class="panel">
+            <h2>SELECT ANONYMOUS METHOD</h2>
+            
+            <div class="methods-grid">
+                <button class="method-btn active" onclick="setMethod('crypto')">CRYPTO (USDT)</button>
+                <button class="method-btn" onclick="setMethod('gift')">GIFT CARD</button>
+            </div>
+
+            <div id="crypto-section" class="payment-content active">
+                <div style="text-align: center; margin-bottom: 10px; color: #888;">SCAN QR TO TRANSFER</div>
+                <div class="qr-placeholder">[ QR CODE ]</div>
+                
+                <div class="input-label">WALLET ADDRESS (TRC20)</div>
+                <div class="wallet-address" onclick="copyWallet()">
+                    TVj7...x8Y2 (CLICK TO COPY)
+                </div>
+                
+                <div style="font-size: 0.8rem; color: var(--alert-color); margin-bottom: 20px; text-align: center; border: 1px solid var(--alert-color); padding: 10px;">
+                    ⚠ WARNING: SEND EXACT AMOUNT.
+                </div>
+                <button class="pay-btn" onclick="processPayment('BLOCKCHAIN_SCAN')">I HAVE SENT FUNDS</button>
+            </div>
+
+            <div id="gift-section" class="payment-content">
+                <div class="input-group">
+                    <label class="input-label">GIFT CARD CODE (AMAZON/APPLE)</label>
+                    <input type="text" id="giftInput" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">
+                        DETECTED REGION CURRENCY (IP: 185.XXX.XX.X)
+                    </label>
+                    <input type="text" value="CHF - SWISS FRANC" readonly title="Region Locked by IP">
+                    <div style="font-size: 0.7rem; color: var(--accent-color); margin-top: 5px;">
+                        >> IP MATCHED: ZURICH, SWITZERLAND
+                    </div>
+                </div>
+
+                <div style="font-size: 0.8rem; color: #666; margin: 20px 0;">
+                    * CARDS MUST BE PURCHASED WITH CASH FOR TOTAL ANONYMITY.
+                </div>
+                <button class="pay-btn" onclick="processPayment('VENDOR_VALIDATION')">REDEEM CODE</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>TRANSACTION SUMMARY</h2>
+            <div class="summary-row">
+                <span>SERVICE</span>
+                <span style="color: #fff">SECURE VAULT ACCESS</span>
+            </div>
+            <div class="summary-row">
+                <span>DURATION</span>
+                <span id="summaryDuration">-- HOURS</span>
+            </div>
+            <div class="summary-row">
+                <span>BASE FEE</span>
+                <span id="summaryFee">€--.--</span>
+            </div>
+            <div class="total-row">
+                <span>TOTAL DUE</span>
+                <span id="summaryTotal" style="color: var(--primary-color)">€--.--</span>
+            </div>
+            <div style="margin-top: 25px; font-size: 0.75rem; color: #444; border-top: 1px solid #222; padding-top: 15px; line-height: 1.4;">
+                >> ACCESS TOKEN GENERATION PENDING.<br>
+                >> NO REFUNDS ON ANONYMOUS TRANSACTIONS.
+            </div>
+        </section>
+    </main>
+
+    <div id="processingOverlay">
+        <div class="loader"></div>
+        <div id="procStatus" style="color: var(--primary-color); letter-spacing: 2px; font-weight: bold;">INITIALIZING...</div>
+        <div id="procDetail" style="color: #888; font-size: 0.9rem; margin-top: 8px;"></div>
+    </div>
+
+    <script>
+        // 1. CHECK AUTH
+        if (!sessionStorage.getItem('vault_auth')) {
+            window.location.href = 'index.html';
+        }
+
+        // 2. LOAD DATA
+        const amount = sessionStorage.getItem('vault_amount_due') || '0.00';
+        const duration = sessionStorage.getItem('vault_duration') || '0';
+        
+        document.getElementById('summaryDuration').innerText = duration + " HOURS";
+        document.getElementById('summaryFee').innerText = "€" + Math.floor(parseFloat(amount)) + ".00";
+        document.getElementById('summaryTotal').innerText = "€" + amount;
+
+        // 3. UI SWITCHER
+        function setMethod(method) {
+            document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.payment-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(method + '-section').classList.add('active');
+        }
+
+        // 4. PAYMENT LOGIC
+        function processPayment(type) {
+            // Basic Validation for Gift Input
+            if(type === 'VENDOR_VALIDATION') {
+                const code = document.getElementById('giftInput').value;
+                if(code.length < 5) {
+                    alert(">> ERROR: INVALID CODE FORMAT");
+                    return;
+                }
+            }
+
+            const overlay = document.getElementById('processingOverlay');
+            const status = document.getElementById('procStatus');
+            const detail = document.getElementById('procDetail');
+
+            overlay.style.display = 'flex';
+
+            // Simulation Steps
+            let steps = [];
+            if(type === 'BLOCKCHAIN_SCAN') {
+                steps = [
+                    { t: 1000, msg: "SCANNING LEDGER...", d: "Searching for incoming TX..." },
+                    { t: 3000, msg: "TX DETECTED...", d: "Confirmations: 1/6" },
+                    { t: 5000, msg: "VERIFYING HASH...", d: "Confirmations: 6/6" },
+                    { t: 6500, msg: "PAYMENT CONFIRMED", d: "Minting Access Token..." }
+                ];
+            } else {
+                steps = [
+                    { t: 1000, msg: "CONNECTING TO VENDOR...", d: "Handshake: Apple/Amazon Services" },
+                    { t: 2500, msg: "VALIDATING REGION...", d: "IP: 185.xxx (Switzerland) -> MATCH" },
+                    { t: 4500, msg: "REDEEMING FUNDS...", d: "Currency: CHF -> Converting..." },
+                    { t: 6000, msg: "PAYMENT CONFIRMED", d: "Generating Access Token..." }
+                ];
+            }
+
+            // Run Sequence
+            steps.forEach(step => {
+                setTimeout(() => {
+                    status.innerText = step.msg;
+                    detail.innerText = step.d;
+                    
+                    if(step.msg === "PAYMENT CONFIRMED") {
+                        status.style.color = "var(--accent-color)";
+                        generateAndRedirect();
+                    }
+                }, step.t);
+            });
+        }
+
+        function generateAndRedirect() {
+            // Generate Random Token
+            const chars = "ABCDEF0123456789";
+            let token = "TRX-";
+            for(let i=0; i<4; i++) token += chars.charAt(Math.floor(Math.random()*chars.length));
+            token += "-";
+            for(let i=0; i<4; i++) token += chars.charAt(Math.floor(Math.random()*chars.length));
+
+            // Save Token (The "Server" creates the key)
+            sessionStorage.setItem('vault_access_token', token);
+
+            setTimeout(() => {
+                window.location.href = 'token.html';
+            }, 2000);
+        }
+
+        function copyWallet() {
+            navigator.clipboard.writeText("TVj7...x8Y2");
+            const addr = document.querySelector('.wallet-address');
+            const original = addr.innerText;
+            addr.innerText = ">> COPIED TO CLIPBOARD";
+            addr.style.color = "#fff";
+            setTimeout(() => {
+                addr.innerText = original;
+                addr.style.color = "#aaa";
+            }, 2000);
+        }
+
+    </script>
+</body>
+</html>

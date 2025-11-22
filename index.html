@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050505">
+    <link rel="manifest" href="manifest.json">
+    <title>SECURE VAULT // ACCESS TERMINAL</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg-color: #050505;
+            --primary-color: #00ffea; /* Cyan Neon */
+            --secondary-color: #003b36;
+            --alert-color: #ff003c;
+            --font-main: 'Share Tech Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* CRT Scanline Overlay */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* Main Container - Responsive */
+        .container {
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--primary-color);
+            padding: 2rem;
+            position: relative;
+            z-index: 3;
+            box-shadow: 0 0 15px var(--secondary-color);
+            background: rgba(5, 5, 5, 0.9);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            letter-spacing: 2px;
+            border-bottom: 1px solid var(--primary-color);
+            padding-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--primary-color);
+            color: #fff;
+            font-family: var(--font-main);
+            font-size: 1.1rem;
+            padding: 10px 0;
+            outline: none;
+            border-radius: 0; /* Mobile fix */
+        }
+
+        input:focus {
+            border-bottom: 1px solid #fff;
+            box-shadow: 0 5px 10px -5px var(--primary-color);
+        }
+
+        button {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            font-family: var(--font-main);
+            font-size: 1.1rem;
+            padding: 15px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background: var(--primary-color);
+            color: var(--bg-color);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        button:disabled {
+            border-color: var(--secondary-color);
+            color: var(--secondary-color);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .status-message {
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            min-height: 1.2rem;
+            text-align: center;
+        }
+
+        .error { color: var(--alert-color); text-shadow: 0 0 5px var(--alert-color); }
+        .success { color: #0f0; text-shadow: 0 0 5px #0f0; }
+
+        /* Lockout Overlay */
+        #lockoutOverlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98);
+            z-index: 10;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--alert-color);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="lockoutOverlay">
+            <h2 style="color: var(--alert-color); margin-bottom: 10px;">TERMINAL LOCKED</h2>
+            <p>SECURITY BREACH DETECTED</p>
+            <p style="margin-top: 20px;">RETRY IN: <span id="countdown">30</span>s</p>
+        </div>
+
+        <h1>>> AUTH_REQUIRED</h1>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="username">USER ID:</label>
+                <input type="text" id="username" autocomplete="off" autocapitalize="none">
+            </div>
+
+            <div class="input-group">
+                <label for="password">PASSWORD:</label>
+                <input type="password" id="password" autocomplete="off">
+            </div>
+
+            <button type="submit" id="submitBtn">Initiate Handshake</button>
+        </form>
+
+        <div class="status-message" id="statusMsg">>> AWAITING INPUT_</div>
+    </div>
+
+    <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('SW Registered'))
+            .catch(err => console.log('SW Fail', err));
+        }
+
+        // CONFIG
+        const CREDENTIALS = { u: 'prideofgypsiesjasonmomoa', p: 'V@ult#8849' };
+        const LOCKOUT_DURATION = 30000;
+        const MAX_ATTEMPTS = 3;
+
+        // STATE MANAGEMENT
+        sessionStorage.clear(); // Reset session on load
+        
+        const form = document.getElementById('loginForm');
+        const statusMsg = document.getElementById('statusMsg');
+        const userIn = document.getElementById('username');
+        const passIn = document.getElementById('password');
+        const btn = document.getElementById('submitBtn');
+        const overlay = document.getElementById('lockoutOverlay');
+        const countSpan = document.getElementById('countdown');
+
+        // INIT
+        checkLockout();
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if(isLocked()) return;
+
+            statusMsg.className = 'status-message';
+            statusMsg.innerText = ">> VERIFYING HASH...";
+            btn.disabled = true;
+
+            setTimeout(() => {
+                if(userIn.value === CREDENTIALS.u && passIn.value === CREDENTIALS.p) {
+                    // Success
+                    statusMsg.className = 'status-message success';
+                    statusMsg.innerText = ">> ACCESS GRANTED. REDIRECTING...";
+                    sessionStorage.setItem('vault_auth', 'true');
+                    localStorage.removeItem('vault_fails');
+                    setTimeout(() => window.location.href = 'tier.html', 1000);
+                } else {
+                    // Fail
+                    handleFail();
+                }
+            }, 800);
+        });
+
+        function handleFail() {
+            btn.disabled = false;
+            passIn.value = '';
+            statusMsg.className = 'status-message error';
+            statusMsg.innerText = ">> ERROR: INVALID CREDENTIALS";
+            
+            let fails = parseInt(localStorage.getItem('vault_fails') || '0');
+            fails++;
+            localStorage.setItem('vault_fails', fails);
+            
+            checkLockout();
+        }
+
+        function isLocked() {
+            const lockTime = localStorage.getItem('vault_lock_until');
+            if(lockTime && new Date().getTime() < parseInt(lockTime)) return true;
+            return false;
+        }
+
+        function checkLockout() {
+            const fails = parseInt(localStorage.getItem('vault_fails') || '0');
+            const lockTime = localStorage.getItem('vault_lock_until');
+            const now = new Date().getTime();
+
+            if (lockTime && now < parseInt(lockTime)) {
+                startTimer(parseInt(lockTime));
+            } else if (fails >= MAX_ATTEMPTS) {
+                const unlockAt = now + LOCKOUT_DURATION;
+                localStorage.setItem('vault_lock_until', unlockAt);
+                startTimer(unlockAt);
+            } else if (lockTime && now >= parseInt(lockTime)) {
+                // Expired
+                localStorage.removeItem('vault_lock_until');
+                localStorage.removeItem('vault_fails');
+                overlay.style.display = 'none';
+            }
+        }
+
+        function startTimer(endTime) {
+            overlay.style.display = 'flex';
+            userIn.disabled = true;
+            passIn.disabled = true;
+            
+            const interval = setInterval(() => {
+                const now = new Date().getTime();
+                const dist = endTime - now;
+                
+                if (dist < 0) {
+                    clearInterval(interval);
+                    localStorage.removeItem('vault_lock_until');
+                    localStorage.removeItem('vault_fails');
+                    overlay.style.display = 'none';
+                    userIn.disabled = false;
+                    passIn.disabled = false;
+                    btn.disabled = false;
+                    statusMsg.innerText = ">> SYSTEM RESET. RETRY.";
+                    statusMsg.className = "status-message";
+                } else {
+                    countSpan.innerText = Math.floor(dist / 1000);
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
