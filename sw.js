@@ -1,43 +1,40 @@
-const CACHE_NAME = 'vault-token-access-v4';
+const CACHE_NAME = 'vault-pwa-v2';
 const urlsToCache = [
   './',
   './index.html',
   './tier.html',
-  './payment.html',
-  './token.html',
   './dashboard.html',
   './manifest.json',
   './pwa192a.png',
   './pwa512a.png'
 ];
 
-// 1. INSTALL: Cache all core files immediately
+// Install Service Worker and Cache Resources
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('>> SYSTEM: Caching Core Protocol Assets...');
+        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-// 2. FETCH: Serve from Cache first, fall back to Network
+// Serve Cached Content when Offline
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Return cached file if found
+        // Cache hit - return response
         if (response) {
           return response;
         }
-        // Otherwise try to fetch from network
         return fetch(event.request);
       })
   );
 });
 
-// 3. ACTIVATE: Delete old caches (Housekeeping)
+// Update Cache when new version is deployed
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -45,7 +42,6 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            // Delete old versions
             return caches.delete(cacheName);
           }
         })

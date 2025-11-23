@@ -38,9 +38,7 @@
             content: "";
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-image: 
-                linear-gradient(rgba(0, 255, 234, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 234, 0.03) 1px, transparent 1px);
+            background-image: linear-gradient(rgba(0, 255, 234, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 234, 0.03) 1px, transparent 1px);
             background-size: 30px 30px;
             pointer-events: none;
             z-index: -1;
@@ -48,7 +46,7 @@
 
         header {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -57,10 +55,21 @@
             margin-bottom: 20px;
         }
 
-        .brand { font-size: 1.2rem; letter-spacing: 2px; color: #fff; }
-        .secure-badge { font-size: 0.8rem; color: var(--accent-color); border: 1px solid var(--accent-color); padding: 2px 6px; }
+        .brand { font-size: 1.1rem; letter-spacing: 2px; color: #fff; }
+        
+        .bypass-btn {
+            background: transparent;
+            border: 1px solid #666;
+            color: #666;
+            padding: 8px 12px;
+            font-family: var(--font-main);
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+        .bypass-btn:hover { border-color: #fff; color: #fff; }
 
-        /* MAIN LAYOUT */
         main {
             display: grid;
             grid-template-columns: 1fr 320px;
@@ -80,11 +89,11 @@
 
         h2 { font-size: 1rem; color: #888; margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 10px; }
 
-        /* ORDER SUMMARY (Right Side) */
+        /* SUMMARY STYLES */
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; }
         .total-row { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px dashed #333; font-size: 1.4rem; color: #fff; }
 
-        /* PAYMENT METHODS (Left Side) */
+        /* METHOD BUTTONS */
         .methods-grid { display: flex; gap: 10px; margin-bottom: 25px; }
         
         .method-btn {
@@ -107,26 +116,17 @@
             box-shadow: 0 0 15px rgba(0, 255, 234, 0.1);
         }
 
-        /* DYNAMIC CONTENT AREAS */
+        /* SECTIONS */
         .payment-content { display: none; animation: fadeIn 0.3s; }
         .payment-content.active { display: block; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* CRYPTO UI */
-        .qr-placeholder {
-            width: 140px; height: 140px;
-            background: #fff;
-            margin: 0 auto 20px auto;
-            display: flex; justify-content: center; align-items: center;
-            color: #000; font-weight: bold; border: 5px solid #fff;
-        }
-        
         .wallet-address {
             background: #000; border: 1px solid #333; padding: 12px;
             font-size: 0.85rem; text-align: center; word-break: break-all;
             color: #aaa; margin-bottom: 20px; user-select: all; cursor: pointer;
-            transition: 0.2s;
         }
         .wallet-address:hover { border-color: var(--primary-color); color: #fff; }
 
@@ -149,7 +149,7 @@
             font-style: italic;
         }
 
-        /* ACTION BUTTON */
+        /* PAY BUTTON */
         .pay-btn {
             width: 100%; background: var(--secondary-color); color: #fff;
             border: none; padding: 18px; font-family: var(--font-main);
@@ -158,7 +158,7 @@
         }
         .pay-btn:hover { background: var(--primary-color); color: #000; box-shadow: 0 0 20px var(--primary-color); }
 
-        /* OVERLAY (Processing) */
+        /* OVERLAYS */
         #processingOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 100;
@@ -172,41 +172,56 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        #keyRevealModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98); z-index: 110;
+            flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
+        }
+
+        .key-display {
+            font-size: 1.8rem; color: var(--accent-color); margin: 20px 0;
+            border: 1px dashed var(--accent-color); padding: 15px;
+            background: rgba(0,255,0,0.1); user-select: text; word-break: break-all;
+        }
+
         /* MOBILE */
         @media (max-width: 768px) {
             main { grid-template-columns: 1fr; }
-            .panel:nth-child(2) { order: -1; } /* Summary first on mobile */
+            .panel:nth-child(2) { order: -1; }
         }
-
     </style>
 </head>
 <body>
 
     <header>
-        <div class="brand">>> CIPHER_PAY // SECURE GATEWAY</div>
-        <div class="secure-badge">TLS 1.3 ENCRYPTED</div>
+        <div class="brand">CipherPay SECURE GATEWAY</div>
+        <button class="bypass-btn" onclick="window.location.href='token.html'">I HAVE A KEY</button>
     </header>
 
     <main>
         <section class="panel">
-            <h2>SELECT ANONYMOUS METHOD</h2>
+            <h2>SELECT PAYMENT METHOD</h2>
             
             <div class="methods-grid">
-                <button class="method-btn active" onclick="setMethod('crypto')">CRYPTO (USDT)</button>
+                <button class="method-btn active" onclick="setMethod('crypto')">CRYPTO (BTC)</button>
                 <button class="method-btn" onclick="setMethod('gift')">GIFT CARD</button>
             </div>
 
             <div id="crypto-section" class="payment-content active">
                 <div style="text-align: center; margin-bottom: 10px; color: #888;">SCAN QR TO TRANSFER</div>
-                <div class="qr-placeholder">[ QR CODE ]</div>
                 
-                <div class="input-label">WALLET ADDRESS (TRC20)</div>
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <img src="btc-qr.png" alt="Payment QR" style="width: 150px; height: 150px; border: 4px solid #fff; display: block; margin: 0 auto; object-fit: contain;">
+                </div>
+                
+                <div class="input-label">WALLET ADDRESS (BTC)</div>
                 <div class="wallet-address" onclick="copyWallet()">
-                    TVj7...x8Y2 (CLICK TO COPY)
+                    37rUfueN5pH4PpJo7xBcU8h6WrY2Zw7qLH
                 </div>
                 
                 <div style="font-size: 0.8rem; color: var(--alert-color); margin-bottom: 20px; text-align: center; border: 1px solid var(--alert-color); padding: 10px;">
-                    ⚠ WARNING: SEND EXACT AMOUNT.
+                    ⚠ WARNING: SEND EXACT AMOUNT. NETWORK FEES APPLY.
                 </div>
                 <button class="pay-btn" onclick="processPayment('BLOCKCHAIN_SCAN')">I HAVE SENT FUNDS</button>
             </div>
@@ -253,7 +268,7 @@
                 <span id="summaryTotal" style="color: var(--primary-color)">€--.--</span>
             </div>
             <div style="margin-top: 25px; font-size: 0.75rem; color: #444; border-top: 1px solid #222; padding-top: 15px; line-height: 1.4;">
-                >> ACCESS TOKEN GENERATION PENDING.<br>
+                >> ACCESS TOKEN WILL BE GENERATED IMMEDIATELY UPON CONFIRMATION.<br>
                 >> NO REFUNDS ON ANONYMOUS TRANSACTIONS.
             </div>
         </section>
@@ -263,6 +278,14 @@
         <div class="loader"></div>
         <div id="procStatus" style="color: var(--primary-color); letter-spacing: 2px; font-weight: bold;">INITIALIZING...</div>
         <div id="procDetail" style="color: #888; font-size: 0.9rem; margin-top: 8px;"></div>
+    </div>
+
+    <div id="keyRevealModal">
+        <h2 style="color:#fff; border:none;">PAYMENT CONFIRMED</h2>
+        <p style="color:#888;">YOUR PERMANENT ACCESS KEY IS:</p>
+        <div class="key-display">GHOST-8824-XHGU</div>
+        <p style="color:#666; font-size:0.8rem; margin-bottom:20px;">SAVE THIS KEY. IT IS REQUIRED FOR ALL FUTURE LOGINS.</p>
+        <button class="pay-btn" style="max-width:300px;" onclick="window.location.href='token.html'">PROCEED TO LOGIN</button>
     </div>
 
     <script>
@@ -310,16 +333,15 @@
             if(type === 'BLOCKCHAIN_SCAN') {
                 steps = [
                     { t: 1000, msg: "SCANNING LEDGER...", d: "Searching for incoming TX..." },
-                    { t: 3000, msg: "TX DETECTED...", d: "Confirmations: 1/6" },
-                    { t: 5000, msg: "VERIFYING HASH...", d: "Confirmations: 6/6" },
-                    { t: 6500, msg: "PAYMENT CONFIRMED", d: "Minting Access Token..." }
+                    { t: 3000, msg: "TX DETECTED...", d: "Confirmations: 2/6" },
+                    { t: 5000, msg: "PAYMENT CONFIRMED", d: "Retrieving Master Key..." }
                 ];
             } else {
                 steps = [
-                    { t: 1000, msg: "CONNECTING TO VENDOR...", d: "Handshake: Apple/Amazon Services" },
-                    { t: 2500, msg: "VALIDATING REGION...", d: "IP: 185.xxx (Switzerland) -> MATCH" },
+                    { t: 1000, msg: "CONTACTING VENDOR...", d: "Handshake: Apple/Amazon Services" },
+                    { t: 2500, msg: "VALIDATING REGION...", d: "IP: 185.XXX (Switzerland) -> MATCH" },
                     { t: 4500, msg: "REDEEMING FUNDS...", d: "Currency: CHF -> Converting..." },
-                    { t: 6000, msg: "PAYMENT CONFIRMED", d: "Generating Access Token..." }
+                    { t: 6000, msg: "PAYMENT CONFIRMED", d: "Retrieving Master Key..." }
                 ];
             }
 
@@ -331,30 +353,19 @@
                     
                     if(step.msg === "PAYMENT CONFIRMED") {
                         status.style.color = "var(--accent-color)";
-                        generateAndRedirect();
+                        setTimeout(() => {
+                            overlay.style.display = 'none';
+                            document.getElementById('keyRevealModal').style.display = 'flex';
+                        }, 1000);
                     }
                 }, step.t);
             });
         }
 
-        function generateAndRedirect() {
-            // Generate Random Token
-            const chars = "ABCDEF0123456789";
-            let token = "TRX-";
-            for(let i=0; i<4; i++) token += chars.charAt(Math.floor(Math.random()*chars.length));
-            token += "-";
-            for(let i=0; i<4; i++) token += chars.charAt(Math.floor(Math.random()*chars.length));
-
-            // Save Token (The "Server" creates the key)
-            sessionStorage.setItem('vault_access_token', token);
-
-            setTimeout(() => {
-                window.location.href = 'token.html';
-            }, 2000);
-        }
-
         function copyWallet() {
-            navigator.clipboard.writeText("TVj7...x8Y2");
+            // REAL ADDRESS COPY
+            navigator.clipboard.writeText("37rUfueN5pH4PpJo7xBcU8h6WrY2Zw7qLH");
+            
             const addr = document.querySelector('.wallet-address');
             const original = addr.innerText;
             addr.innerText = ">> COPIED TO CLIPBOARD";

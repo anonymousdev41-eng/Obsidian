@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#050505">
     <link rel="manifest" href="manifest.json">
-    <title>SECURE VAULT // ACCESS TOKEN</title>
+    <title>SECURE VAULT // ACCESS</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
@@ -61,45 +61,20 @@
             text-transform: uppercase;
         }
 
-        /* RECEIPT BOX (Top) */
-        .receipt-box {
-            border: 1px dashed var(--secondary-color);
-            background: rgba(0, 59, 54, 0.2);
-            padding: 30px 20px;
-            margin-bottom: 40px;
-            position: relative;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        .instruction-text {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            line-height: 1.5;
         }
         
-        .receipt-label {
-            position: absolute;
-            top: -10px; left: 50%; transform: translateX(-50%);
-            background: var(--bg-color);
-            padding: 0 10px;
+        .instruction-sub {
             font-size: 0.8rem;
-            color: #888;
-            border: 1px solid #222;
+            color: #444;
+            margin-top: 5px;
         }
 
-        .token-display {
-            font-size: 2.2rem;
-            color: var(--accent-color);
-            font-weight: bold;
-            letter-spacing: 2px;
-            margin: 10px 0;
-            min-height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            text-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
-            transition: 0.2s;
-        }
-        .token-display:active { transform: scale(0.98); }
-
-        .copy-hint { font-size: 0.7rem; color: #666; text-transform: uppercase; margin-top: 10px; }
-
-        /* INPUT AREA (Bottom) */
+        /* INPUT AREA */
         .input-wrapper { text-align: left; width: 100%; }
         .input-label { font-size: 0.8rem; color: var(--primary-color); margin-bottom: 8px; display: block; }
         
@@ -119,7 +94,10 @@
             transition: border 0.3s;
         }
         
-        .token-input:focus { border-color: var(--primary-color); box-shadow: 0 0 15px rgba(0, 255, 234, 0.1); }
+        .token-input:focus { 
+            border-color: var(--primary-color); 
+            box-shadow: 0 0 15px rgba(0, 255, 234, 0.1); 
+        }
 
         .btn {
             width: 100%;
@@ -152,93 +130,54 @@
 <body>
 
     <div class="container">
-        <h1>>> AUTHENTICATION_REQ</h1>
+        <h1>>> SECURE_LOGIN</h1>
 
-        <div class="receipt-box">
-            <div class="receipt-label">INCOMING_PACKET // SECURE_CHANNEL</div>
-            <div class="token-display" id="generatedToken" title="Tap to Copy">...</div>
-            <div class="copy-hint" id="copyHint">>> TAP CODE TO COPY TO CLIPBOARD</div>
+        <div class="instruction-text">
+            ENTER YOUR ACCESS KEY.
+            <div class="instruction-sub">(ONLY TOKENS PURCHASED VIA CIPHERPAY ARE ACCEPTED AT THIS TIME)</div>
         </div>
 
         <div class="input-wrapper">
-            <label class="input-label" for="tokenInput">INPUT ACCESS_KEY:</label>
-            <input type="text" id="tokenInput" class="token-input" placeholder="TRX-XXXX-XXXX" autocomplete="off">
+            <label class="input-label" for="tokenInput">ACCESS KEY:</label>
+            <input type="text" id="tokenInput" class="token-input" placeholder="XXXX-XXXX-PROTOCOL" autocomplete="off">
             
-            <button class="btn" id="submitBtn" onclick="validateToken()">INITIALIZE TUNNEL</button>
+            <button class="btn" id="submitBtn" onclick="validateToken()">AUTHENTICATE</button>
         </div>
 
         <div id="statusLog"></div>
     </div>
 
     <script>
-        // 1. SECURITY CHECK
+        // 1. SECURITY CHECK (Must have logged in at index.html)
         if (!sessionStorage.getItem('vault_auth')) {
             window.location.href = 'index.html';
         }
 
-        // 2. RETRIEVE TOKEN FROM PAYMENT STEP
-        const validToken = sessionStorage.getItem('vault_access_token');
-        
-        // Failsafe logic for testing (remove in prod if desired)
-        const displayToken = validToken || "ERR-NO-PAYMENT";
+        // 2. THE MASTER KEY (Hardcoded - This is the only key that works)
+        const MASTER_KEY = "TRX-3A99-A52D";
 
-        // 3. ANIMATE TOKEN REVEAL
-        const tokenDisplay = document.getElementById('generatedToken');
-        
-        if(validToken) {
-            let iterations = 0;
-            const interval = setInterval(() => {
-                tokenDisplay.innerText = displayToken
-                    .split("")
-                    .map((letter, index) => {
-                        if(index < iterations) return displayToken[index];
-                        return String.fromCharCode(65 + Math.floor(Math.random() * 26));
-                    })
-                    .join("");
-                
-                if(iterations >= displayToken.length) clearInterval(interval);
-                iterations += 1/2; // Speed of decryption
-            }, 50);
-        } else {
-            tokenDisplay.innerText = "ERROR: 402";
-            tokenDisplay.style.color = "var(--alert-color)";
-        }
-
-        // 4. COPY TO CLIPBOARD
-        tokenDisplay.addEventListener('click', () => {
-            if(validToken) {
-                navigator.clipboard.writeText(validToken).then(() => {
-                    const hint = document.getElementById('copyHint');
-                    hint.innerText = ">> COPIED SUCCESSFULLY";
-                    hint.style.color = "#fff";
-                    setTimeout(() => {
-                        hint.innerText = ">> TAP CODE TO COPY TO CLIPBOARD";
-                        hint.style.color = "#666";
-                    }, 2000);
-                });
-            }
-        });
-
-        // 5. VALIDATION LOGIC
         function validateToken() {
             const input = document.getElementById('tokenInput');
             const log = document.getElementById('statusLog');
             const btn = document.getElementById('submitBtn');
 
+            // Clean input
             const userVal = input.value.trim().toUpperCase();
 
             if(!userVal) return;
 
+            // UI Feedback
             btn.disabled = true;
             btn.innerText = "VERIFYING HASH...";
+            log.innerText = "";
 
             setTimeout(() => {
-                if (userVal === validToken) {
+                if (userVal === MASTER_KEY) {
                     // SUCCESS
-                    log.innerText = ">> KEY ACCEPTED. ESTABLISHING LINK...";
+                    log.innerText = ">> KEY ACCEPTED. DECRYPTING WORKSPACE...";
                     log.style.color = "var(--accent-color)";
                     
-                    // Final Auth Flag - This is what Dashboard looks for
+                    // Set the session flag required by dashboard.html
                     sessionStorage.setItem('vault_session_active', 'true');
 
                     setTimeout(() => {
@@ -250,16 +189,25 @@
                     log.innerText = ">> ERROR: INVALID ACCESS KEY.";
                     log.style.color = "var(--alert-color)";
                     btn.disabled = false;
-                    btn.innerText = "INITIALIZE TUNNEL";
+                    btn.innerText = "AUTHENTICATE";
                     input.value = '';
                     input.focus();
                     
-                    // Shake Input
+                    // Shake Input Animation
                     input.style.transform = "translateX(10px)";
-                    setTimeout(() => input.style.transform = "translateX(0)", 100);
+                    setTimeout(() => input.style.transform = "translateX(-10px)", 50);
+                    setTimeout(() => input.style.transform = "translateX(5px)", 100);
+                    setTimeout(() => input.style.transform = "translateX(0)", 150);
                 }
-            }, 1000);
+            }, 1000); // 1 second simulated delay
         }
+
+        // Allow 'Enter' key to submit
+        document.getElementById('tokenInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                validateToken();
+            }
+        });
     </script>
 </body>
 </html>
